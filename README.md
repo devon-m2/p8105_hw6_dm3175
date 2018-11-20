@@ -1,1 +1,1 @@
-# p8105_hw6_dm3175
+# Homework 6 Solutions
