@@ -8,6 +8,11 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(purrr)
+knitr::opts_chunk$set(
+  fig.width = 10,
+  fig.asp = .6,
+  out.width = "90%"
+)
 ```
 
 # Homework 6 Solutions
@@ -71,8 +76,9 @@ broom::tidy() %>%
 **Interpretation**: The table output represents the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed. The resulting odds ratio is less than 1, which indicates that the odds for having a homicide resolved in the non-white race victim group is lower than among whites. The results from this logistic regression model may therefore suggest that disparities exist in how likely a crime is to be resolved depending on the victims' race. 
 
 ### Fitting logistic regression model for all cities
+A logistic regression model was fitted for all cities using `map` and list columns. The stratified analysis allows for comparisons of adjusted odds ratios by each city to determine if differences in the estimates vary by city. As computed for the Baltimore data above, the model examines resolved vs unresolved crimes as the outcome and victim age, sex and race as predictors. The adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed was examined. 
 
-Removed crimes where the victim sex was unknown 
+**When fitting this model, crime cases where victim sex and race were unknown were removed from the analysis.** 
 
 ```{r}
 # fitted logistic regression model by city_state
@@ -84,11 +90,8 @@ nest_fit_logistic_all = clean_homicide_data %>%
          confid = map(models, broom::confint_tidy),
          models = map(models, broom::tidy)) %>% 
   select(-data) %>% 
-  unnest()
-  
+  unnest() %>% 
 # tidied the dataframe, including adding OR and CI estimate
-
-nest_fit_logistic_all %>% 
   mutate(OR = exp(estimate),
          conf.low = exp(conf.low),
          conf.high = exp(conf.high), 
@@ -98,7 +101,18 @@ nest_fit_logistic_all %>%
 
 ```
 
-
 #### Plot of estimated ORs and CIs for each city
+The adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed was plotted for each city along with 95% confidence intervals. The resulting plot shows that OR values are generally less than 1 (except for Tampa, FL, Birmingham, AL and Durham, NC, although these estimates have large confidence intervals due to smaller sample sizes), indicating that homicides where the victim is nonwhite are generally less likely to be resolved than those when the victim is white. Note that the plot indicates that the value of the OR varies by City.
 
+```{r}
+nest_fit_logistic_all %>%
+  mutate(city_state = forcats::fct_reorder(city_state, desc(OR))) %>% 
+  ggplot(aes(x = city_state, y = OR)) +
+  geom_point() +
+  geom_errorbar(aes(x = city_state, ymin = conf.low, ymax = conf.high)) +
+  theme(axis.text.x = element_text(angle = 80, hjust = 1), text=element_text(size = 10)) +
+  labs(title = "Adjusted OR for Solving Homicides of Non-White vs. White keeping Sex and Age Constant, by City",
+         x = "City, State",
+         y = "OR (95% CI)")
+```
 
