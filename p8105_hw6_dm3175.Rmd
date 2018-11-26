@@ -29,7 +29,7 @@ Data cleaning steps were subsequently followed:
 ```{r}
 clean_homicide_data = homicide_data %>% 
   mutate(city_state = str_c(city, ", ", state),
-         solved = ifelse(disposition == "Closed by arrest", 1, 0),
+         resolved = ifelse(disposition == "Closed by arrest", 1, 0),
          victim_race = ifelse(victim_race == "White", "white", "non-white"),
          victim_race = fct_relevel(victim_race, "white"),
          victim_age = as.numeric(victim_age)) %>% 
@@ -40,7 +40,23 @@ clean_homicide_data = homicide_data %>%
 Cleaning steps:
 
 *  Created a `city_state` variable combining city and state. 
-*  Created a binary variable `solved` indicating if crime was solved. "1" signifies solved ("Closed by arrest"), and "0" signifies unsolved "Closed without arrest" or "Open/No arrest". 
+*  Created a binary variable `resolved` indicating if crime was solved. "1" signifies solved ("Closed by arrest"), and "0" signifies unsolved "Closed without arrest" or "Open/No arrest". 
 *  Modified `victim_race` to have categories "white" and "non-white", with "white" as the reference category.
 *  Converted `victim_age` to numeric.
 *  Filtered out Dallas, TX, Phoenix, AZ and Kansas City, MO (incomplete data for variables of interest), and Tulsa, AL (data entry error). 
+
+### Fitting logistic regression model 
+
+```{r}
+fit_logistic = clean_homicide_data %>% 
+  filter(city_state == "Baltimore, MD") %>% 
+  select(victim_race, victim_age, victim_sex, resolved) %>% 
+  glm(resolved ~ victim_age + victim_sex + victim_race, data = ., family = binomial()) 
+
+fit_logistic %>% 
+broom::tidy() %>% 
+  mutate(OR = exp(estimate)) %>% 
+  knitr::kable(digits = 3)
+
+```
+
