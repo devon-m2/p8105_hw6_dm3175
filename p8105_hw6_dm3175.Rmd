@@ -7,6 +7,7 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(purrr)
 ```
 
 # Homework 6 Solutions
@@ -69,8 +70,35 @@ broom::tidy() %>%
 
 **Interpretation**: The table output represents the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing non-white victims to white victims keeping all other variables fixed. The resulting odds ratio is less than 1, which indicates that the odds for having a homicide resolved in the non-white race victim group is lower than among whites. The results from this logistic regression model may therefore suggest that disparities exist in how likely a crime is to be resolved depending on the victims' race. 
 
+### Fitting logistic regression model for all cities
+
+Removed crimes where the victim sex was unknown 
+
+```{r}
+# fitted logistic regression model by city_state
+nest_fit_logistic_all = clean_homicide_data %>% 
+  filter(!(victim_race == "NA" | victim_sex == "NA")) %>%
+  group_by(city_state) %>%
+  nest() %>%
+  mutate(models = map(data, ~glm(resolved ~ victim_age + victim_sex + victim_race, data = ., family = binomial())),
+         confid = map(models, broom::confint_tidy),
+         models = map(models, broom::tidy)) %>% 
+  select(-data) %>% 
+  unnest()
+  
+# tidied the dataframe, including adding OR and CI estimate
+
+nest_fit_logistic_all %>% 
+  mutate(OR = exp(estimate),
+         conf.low = exp(conf.low),
+         conf.high = exp(conf.high), 
+         log_OR = estimate) %>%
+  filter(term == "victim_racenon-white") %>%
+  select(city_state, term, OR, conf.low, conf.high)
+
+```
 
 
-
+#### Plot of estimated ORs and CIs for each city
 
 
