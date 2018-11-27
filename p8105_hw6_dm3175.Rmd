@@ -125,22 +125,41 @@ This problem uses data gathered to understand the effects of several variables o
 ```{r}
 birthweight_data = read_csv(file = "./data/birthweight.csv") %>% 
   janitor::clean_names()
-  
-```
 
-Used `skimr::skim()` to check for any missing data points and there were none. Converted relevant variables to factor variables when appropriate. 
-
-```{r}
 tidy_birthweight_data = birthweight_data %>% 
   mutate(babysex = as.factor(babysex), 
          frace = as.factor(frace),
          malform = as.factor(malform), 
-         mrace = as.factor(mrace),
-         smoken = as.factor(smoken))
+         mrace = as.factor(mrace))
+```
+
+Used `skimr::skim()` to check for any missing data points and there were none. Converted relevant variables to factor variables when appropriate. 
+
+
+To select the covariates to include in the model, a report published by UNICEF (UNICEF. 2004. "Low Birthweight: Country, Regional and Global Estimates" https://www.unicef.org/publications/files/low_birthweight_from_EY.pdf) was consulted to investigate factors associated with the mother which may impact birthweight. 
+
+*  Parity
+*  Mother age
+*  Mother height
+*  Smoking
+*  Pregnancy Duration
+*  SES status
+
+Model: wtgain, parity, smoken, ppwt, gaweeks, 
+
+
+```{r}
+tidy_birthweight_data %>% 
+  ggplot(aes(x = ppwt, y = bwt)) + 
+  geom_point()
+
+
+fit_lm_birthweight_1 = lm(bwt ~ wtgain + smoken + ppwt + parity + gaweeks, data = birthweight_data) %>%
+    broom::glance()
+
 
 ```
 
-head circum, gestational age
 
 No missing values
 
