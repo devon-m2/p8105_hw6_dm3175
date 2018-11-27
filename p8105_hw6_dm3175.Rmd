@@ -130,76 +130,107 @@ tidy_birthweight_data = birthweight_data %>%
   mutate(babysex = as.factor(babysex), 
          frace = as.factor(frace),
          malform = as.factor(malform), 
-         mrace = as.factor(mrace))
+         mrace = as.factor(mrace),
+         wtgain = as.numeric(wtgain),
+         mheight = as.numeric(mheight),
+         gaweeks = as.numeric(gaweeks),
+         fincome = as.numeric(fincome), 
+         blength = as.numeric(blength))
+       
 ```
 
-Used `skimr::skim()` to check for any missing data points and there were none. Converted relevant variables to factor variables when appropriate. 
+Used `skimr::skim()` to check for any missing data points and there were none. Converted relevant variables to factor variables and to numeric when appropriate. 
 
+### Regression Model for Birthweight
+To select the covariates to include in the model, a report published by UNICEF (UNICEF. 2004. "Low Birthweight: Country, Regional and Global Estimates" https://www.unicef.org/publications/files/low_birthweight_from_EY.pdf) was consulted to investigate factors associated with the mother which may impact birthweight. The goal of this particular model was to examine what maternal factors may predict birthweight, which could represent a possible target for public health interventions to reduce low birthweight. Various combinations of the suggested factors were tested and adjusted R^2 values were compared for different models when adding new variables. The following variables were included in the model describing maternal influences of birthweight. 
 
-To select the covariates to include in the model, a report published by UNICEF (UNICEF. 2004. "Low Birthweight: Country, Regional and Global Estimates" https://www.unicef.org/publications/files/low_birthweight_from_EY.pdf) was consulted to investigate factors associated with the mother which may impact birthweight. 
+*  Mother height (`mheight`)
+*  Smoking (`smoken`)
+*  Pregnancy Duration (`gaweeks`)
+*  SES status measured through family income (`fincome`)
+*  Maternal weight gain during pregnancy (`wtgain`)
 
-*  Parity
-*  Mother age
-*  Mother height
-*  Smoking
-*  Pregnancy Duration
-*  SES status
+```{r}
+fit_lm_birthweight_1 = lm(bwt ~ wtgain + smoken + mheight + fincome + gaweeks, data = birthweight_data) 
 
-Model: wtgain, parity, smoken, ppwt, gaweeks, 
+fit_lm_birthweight_1 %>%
+    broom::glance() %>%
+    knitr::kable(digits = 3)
+```
 
+```{r}
+fit_lm_birthweight_1 %>%
+    broom::tidy() %>%
+    knitr::kable(digits = 3)
+```
+
+The resulting adjusted R^2 value for the model was `r fit_lm_birthweight_1 %>% broom::glance() %>% pull(adj.r.squared)`. 
+
+### Plot of Predictions and Residuals
+
+Below is a plot of model residuals against predicted birthweight values. While the residuals are clustered in the middle, and do not appear to have a clear pattern, there are definitely outliers present at smaller predicted values. This indicates that there may be some issues with the proposed model. Possible solutions could include developing a rule to remove outliers from the data set or transforming (e.g. using a log transformation) some variables. 
 
 ```{r}
 tidy_birthweight_data %>% 
-  ggplot(aes(x = ppwt, y = bwt)) + 
-  geom_point()
-
-
-fit_lm_birthweight_1 = lm(bwt ~ wtgain + smoken + ppwt + parity + gaweeks, data = birthweight_data) %>%
-    broom::glance()
-
+    modelr::add_predictions(fit_lm_birthweight_1) %>% 
+    modelr::add_residuals(fit_lm_birthweight_1) %>%
+    ggplot(aes(x = pred, y = resid)) +
+    geom_point(alpha = 0.5) +
+    labs(title = "Model 1: Plot of Residuals Against Predicted Birthweight Values",
+         x = "Predicted Values",
+         y = "Residuals")
 
 ```
 
-
-No missing values
-
-The dataset contains the following variables (variable descriptions cited from Homework Assignment): 
-
-*  babysex: baby’s sex (male = 1, female = 2)
-*  bhead: baby’s head circumference at birth (centimeters)
-blength: baby’s length at birth (centimeteres)
-bwt: baby’s birth weight (grams)
-delwt: mother’s weight at delivery (pounds)
-fincome: family monthly income (in hundreds, rounded)
-frace: father’s race (1= White, 2 = Black, 3 = Asian, 4 = Puerto Rican, 8 = Other, 9 = Unknown)
-gaweeks: gestational age in weeks
-malform: presence of malformations that could affect weight (0 = absent, 1 = present)
-menarche: mother’s age at menarche (years)
-mheigth: mother’s height (inches)
-momage: mother’s age at delivery (years)
-mrace: mother’s race (1= White, 2 = Black, 3 = Asian, 4 = Puerto Rican, 8 = Other)
-parity: number of live births prior to this pregnancy
-pnumlbw: previous number of low birth weight babies
-pnumgsa: number of prior small for gestational age babies
-ppbmi: mother’s pre-pregnancy BMI
-ppwt: mother’s pre-pregnancy weight (pounds)
-smoken: average number of cigarettes smoked per day during pregnancy
-wtgain: mother’s weight gain during pregnancy (pounds)
-
-Comparison of models against two others: 
-
-One using length at birth and gestational age as predictors (main effects only)
+### Comparison of Model Against Two Others
+The proposed model was compared against two others. The first model (`fit_lm_birthweight_2`) was one using using length at birth and gestational age as predictors (main effects only). The second model (`fit_lm_birthweight_3`) used head circumference, length, sex, and all interactions (including the three-way interaction) between these variables. 
 
 ```{r}
-fit_lm_birthweight_2 = lm(bwt ~ blength + gaweeks, data = birthweight_data) %>%
-    broom::glance()
+fit_lm_birthweight_2 = lm(bwt ~ blength + gaweeks, data = birthweight_data) 
 
-fit_lm_birthweight_3 = lm(bwt ~ bhead + blength + babysex, data = birthweight_data)
+  fit_lm_birthweight_2 %>%
+    broom::glance() %>% 
+    knitr::kable(digits = 3)
+  
+  fit_lm_birthweight_2 %>%
+    broom::tidy() %>% 
+    knitr::kable(digits = 3)
 
 ```
 
 
+```{r}
+fit_lm_birthweight_3 = lm(bwt ~ bhead * blength * babysex, data = birthweight_data) 
 
-One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+fit_lm_birthweight_3 %>%
+    broom::glance() %>% 
+    knitr::kable(digits = 3)
+
+fit_lm_birthweight_3 %>%
+    broom::tidy() %>% 
+    knitr::kable(digits = 3)
+```
+
+
+```{r}
+cv_birthweight_df = 
+  crossv_mc(tidy_birthweight_data, 100)
+
+cv_birthweight_df = 
+  cv_birthweight_df %>% 
+  mutate(fit_lm_birthweight_1 = map(train, ~lm(bwt ~ wtgain + smoken + mheight + fincome + gaweeks, data = birthweight_data)),
+         fit_lm_birthweight_2 = map(train, ~lm(bwt ~ blength + gaweeks, data = birthweight_data)),
+         fit_lm_birthweight_3 = map(train, ~lm(bwt ~ bhead * blength * babysex, data = birthweight_data))) %>% 
+  mutate(rmse_1 = map2_dbl(fit_lm_birthweight_1, test, ~rmse(model = .x, data = .y)),
+         rmse_2 = map2_dbl(fit_lm_birthweight_2, test, ~rmse(model = .x, data = .y)),
+         rmse_3 = map2_dbl(fit_lm_birthweight_3, test, ~rmse(model = .x, data = .y)))
+
+cv_birthweight_df %>% 
+  select(starts_with("rmse")) %>% 
+  gather(key = model, value = rmse) %>% 
+  mutate(model = str_replace(model, "rmse_", ""),
+         model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
+```
 
 use cross validation
