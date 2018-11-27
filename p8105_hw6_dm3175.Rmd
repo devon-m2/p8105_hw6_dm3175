@@ -8,6 +8,8 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(purrr)
+library(modelr)
+library(mgcv)
 knitr::opts_chunk$set(
   fig.width = 10,
   fig.asp = .6,
@@ -123,10 +125,22 @@ This problem uses data gathered to understand the effects of several variables o
 ```{r}
 birthweight_data = read_csv(file = "./data/birthweight.csv") %>% 
   janitor::clean_names()
-
-birthweight_data %>% 
-  skimr::skim()
+  
 ```
+
+Used `skimr::skim()` to check for any missing data points and there were none. Converted relevant variables to factor variables when appropriate. 
+
+```{r}
+tidy_birthweight_data = birthweight_data %>% 
+  mutate(babysex = as.factor(babysex), 
+         frace = as.factor(frace),
+         malform = as.factor(malform), 
+         mrace = as.factor(mrace),
+         smoken = as.factor(smoken))
+
+```
+
+head circum, gestational age
 
 No missing values
 
@@ -153,6 +167,20 @@ ppwt: mother’s pre-pregnancy weight (pounds)
 smoken: average number of cigarettes smoked per day during pregnancy
 wtgain: mother’s weight gain during pregnancy (pounds)
 
+Comparison of models against two others: 
+
+One using length at birth and gestational age as predictors (main effects only)
+
+```{r}
+fit_lm_birthweight_2 = lm(bwt ~ blength + gaweeks, data = birthweight_data) %>%
+    broom::glance()
+
+fit_lm_birthweight_3 = lm(bwt ~ bhead + blength + babysex, data = birthweight_data)
+
+```
 
 
 
+One using head circumference, length, sex, and all interactions (including the three-way interaction) between these
+
+use cross validation
