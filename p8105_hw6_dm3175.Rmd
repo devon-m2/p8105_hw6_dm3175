@@ -127,7 +127,7 @@ birthweight_data = read_csv(file = "./data/birthweight.csv") %>%
   janitor::clean_names()
 
 tidy_birthweight_data = birthweight_data %>% 
-  mutate(babysex = as.factor(babysex), 
+  mutate(babysex = as.numeric(babysex), 
          frace = as.factor(frace),
          malform = as.factor(malform), 
          mrace = as.factor(mrace),
@@ -167,8 +167,7 @@ fit_lm_birthweight_1 %>%
 The resulting adjusted R^2 value for the model was `r fit_lm_birthweight_1 %>% broom::glance() %>% pull(adj.r.squared)`. 
 
 ### Plot of Predictions and Residuals
-
-Below is a plot of model residuals against predicted birthweight values. While the residuals are clustered in the middle, and do not appear to have a clear pattern, there are definitely outliers present at smaller predicted values. This indicates that there may be some issues with the proposed model. Possible solutions could include developing a rule to remove outliers from the data set or transforming (e.g. using a log transformation) some variables. 
+Below is a plot of model residuals against predicted birthweight values. While the residuals are clustered in the middle, and do not appear to have a clear pattern, there are definitely outliers present at smaller predicted values. This indicates that there may be some issues with the proposed model. Possible solutions could include developing a rule to remove outliers from the data set or transforming (e.g. using a log transformation) some variables.  
 
 ```{r}
 tidy_birthweight_data %>% 
@@ -198,7 +197,6 @@ fit_lm_birthweight_2 = lm(bwt ~ blength + gaweeks, data = birthweight_data)
 
 ```
 
-
 ```{r}
 fit_lm_birthweight_3 = lm(bwt ~ bhead * blength * babysex, data = birthweight_data) 
 
@@ -211,8 +209,12 @@ fit_lm_birthweight_3 %>%
     knitr::kable(digits = 3)
 ```
 
+#### Cross Validation and Comparison on Models 
+The model was compared to the two alternative proposed models using `crossv_mc` and functions in `purrr`. The resulting plots of RMSEs demonstrate that Model 3 (including head circumference, length, sex, and all interactions (including the three-way interaction) between these) has the smallest RMSE, indicating that this model works the best for the data. Model 2 (including blength + gaweeks) had the second smallest RMSE. The proposed model incorporating maternal factors (model 1, including wtgain + smoken + mheight + fincome + gaweeks) had the largest RMSE value, indicating that this model was the least effective in prediction accurary compared to the other two models. This may suggest that this model should be revisited in the future and improved to decrease the RMSE. Moreover, focusing on some key maternal factors in model 1 to predict birthweight may be important but not as predictive as the other variables included in the other models. 
 
 ```{r}
+set.seed(1)
+
 cv_birthweight_df = 
   crossv_mc(tidy_birthweight_data, 100)
 
@@ -233,4 +235,3 @@ cv_birthweight_df %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
-use cross validation
